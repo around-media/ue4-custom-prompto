@@ -250,14 +250,11 @@ FWebBrowserSingleton::FWebBrowserSingleton(const FWebBrowserInitSettings& WebBro
 	Settings.command_line_args_disabled = true;
 #if !PLATFORM_LINUX
 	Settings.enable_net_security_expiration = true;
-
-	//AMCHANGE_begin: 
-//#AMCHANGE CEF get stuck sometimes on the external pump logic, disabling it again so it's the same logic as in UE4.19
-	//Settings.external_message_pump = true;
+	Settings.external_message_pump = true;
 #endif
 	//@todo change to threaded version instead of using external_message_pump & OnScheduleMessagePumpWork
-	//Settings.multi_threaded_message_loop = false;
-	//AMCHANGE_end
+	Settings.multi_threaded_message_loop = false;
+	
 
 	FString CefLogFile(FPaths::Combine(*FPaths::ProjectLogDir(), TEXT("cef3.log")));
 	CefLogFile = FPaths::ConvertRelativePathToFull(CefLogFile);
@@ -644,20 +641,16 @@ bool FWebBrowserSingleton::Tick(float DeltaTime)
 			}
 		}
 	}
-	//AMCHANGE_begin: 
-	//#AMCHANGE CEF get stuck sometimes on the external pump logic, disabling it again so it's the same logic as in UE4.19
-	//bool bForceMessageLoop = false;
-	//GConfig->GetBool(TEXT("Browser"), TEXT("bForceMessageLoop"), bForceMessageLoop, GEngineIni);
-	//if (CEFBrowserApp != nullptr)
-	//{
-	//	// force via config override or if there are active browser windows
-	//	const bool bForce = bForceMessageLoop || WindowInterfaces.Num() > 0;
-	//	// tick the CEF app to determine when to run CefDoMessageLoopWork
-	//	CEFBrowserApp->TickMessagePump(DeltaTime, bForce);
-	//}
 
-	CefDoMessageLoopWork();
-	//AMCHANGE_end: 
+	bool bForceMessageLoop = false;
+	GConfig->GetBool(TEXT("Browser"), TEXT("bForceMessageLoop"), bForceMessageLoop, GEngineIni);
+	if (CEFBrowserApp != nullptr)
+	{
+		// force via config override or if there are active browser windows
+		const bool bForce = bForceMessageLoop || WindowInterfaces.Num() > 0;
+		// tick the CEF app to determine when to run CefDoMessageLoopWork
+		CEFBrowserApp->TickMessagePump(DeltaTime, bForce);
+	}
 
 	// Update video buffering for any windows that need it
 	for (int32 Index = 0; Index < WindowInterfaces.Num(); Index++)
